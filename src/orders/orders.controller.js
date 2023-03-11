@@ -22,12 +22,66 @@ function isMethodTypeIncluded(type){
     };
 };
 
+function isDishesArray(req, res, next) {
+    const { dishes } = req.body.data;
+
+    if (Array.isArray(dishes) && dishes.length > 0) {
+        res.locals.dishes = dishes
+        return next();
+    }
+
+    next({
+        status: 400,
+        message: 'Order must include at least one dish',
+    });
+};
+
+function isQuantityValid(req, res, next){
+    const dishes = res.locals.dishes;
+    dishes.forEach((dish, index) => {
+        const {quantity} = dish;
+        if (!quantity || !Number.isInteger(quantity) || quantity < 1){
+            return next({
+                status: 400,
+                message: `Dish ${index} must have a quantity that is an integer greater than 0`,
+            });
+        }
+    });
+
+    next();
+};
+
 // route main functions
 
 function list(req, res){
     res.status(200).send({data: orders});
 };
 
+function create(req, res){
+    const { deliverTo, mobileNumber, dishes, status } = req.body.data;
+    const newOrder = {
+        id: nextId(),
+        deliverTo,
+        mobileNumber,
+        status,
+        dishes
+    };
+
+    orders.push(newOrder);
+
+    res.status(201).send({data: newOrder});
+};
+
+
+
 module.exports = {
     list,
+    create: [
+        isMethodTypeIncluded('deliverTo'),
+        isMethodTypeIncluded('mobileNumber'),
+        isDishesArray,
+        isQuantityValid,
+        create,
+    ],
+
 };
