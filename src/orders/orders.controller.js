@@ -1,17 +1,17 @@
-const path = require("path");
+const path = require('path');
 
 // Use the existing order data
-const orders = require(path.resolve("src/data/orders-data"));
+const orders = require(path.resolve('src/data/orders-data'));
 
-// Use this function to assigh ID's when necessary
-const nextId = require("../utils/nextId");
+// Use this function to assign ID's when necessary
+const nextId = require('../utils/nextId');
 
 // validation functions
-function isMethodTypeIncluded(type){
+function isMethodTypeIncluded(type) {
     return (req, res, next) => {
-        const {data = {}} = req.body;
+        const { data = {} } = req.body;
 
-        if (data[type]){
+        if (data[type]) {
             return next();
         } else {
             next({
@@ -20,13 +20,13 @@ function isMethodTypeIncluded(type){
             });
         }
     };
-};
+}
 
 function isDishesArray(req, res, next) {
     const { dishes } = req.body.data;
 
     if (Array.isArray(dishes) && dishes.length > 0) {
-        res.locals.dishes = dishes
+        res.locals.dishes = dishes;
         return next();
     }
 
@@ -34,13 +34,13 @@ function isDishesArray(req, res, next) {
         status: 400,
         message: 'Order must include at least one dish',
     });
-};
+}
 
-function isQuantityValid(req, res, next){
+function isQuantityValid(req, res, next) {
     const dishes = res.locals.dishes;
     dishes.forEach((dish, index) => {
-        const {quantity} = dish;
-        if (!quantity || !Number.isInteger(quantity) || quantity < 1){
+        const { quantity } = dish;
+        if (!quantity || !Number.isInteger(quantity) || quantity < 1) {
             return next({
                 status: 400,
                 message: `Dish ${index} must have a quantity that is an integer greater than 0`,
@@ -49,47 +49,87 @@ function isQuantityValid(req, res, next){
     });
 
     next();
-};
+}
 
-function doesOrderIdExist(req, res, next){
-    const {orderId} = req.params;
-    const foundOrder = orders.find(order => order.id === orderId);
+function doesOrderIdExist(req, res, next) {
+    const { orderId } = req.params;
+    const foundOrder = orders.find((order) => order.id === orderId);
 
-    if (foundOrder){
+    if (foundOrder) {
         res.locals.order = foundOrder;
-        return next()
+        return next();
     }
 
     next({
         status: 404,
         message: `No matching order with id: ${orderId}`,
     });
-};
+}
+
+function doesOrderIdMatch(req, res, next) {
+    const { orderId } = req.params;
+    const { id } = req.body.data;
+
+    if (id && orderId !== id) {
+        return next({
+            status: 400,
+            message: `Order id does not match route id. Order: ${id}, Route: ${orderId}`,
+        });
+    }
+
+    next();
+}
+
+function isStatusValid(req, res, next) {
+    const statusTypes = ['pending', 'preparing', 'out-for-delivery', 'delivered'];
+    const { status } = req.body.data;
+
+    if (statusTypes.includes(status)) {
+        return next();
+    }
+
+    next({
+        status: 400,
+        message: `Order must have a status of pending, preparing, out-for-delivery, delivered`,
+    });
+}
 
 // route main functions
 
-function list(req, res){
-    res.status(200).send({data: orders});
-};
+function list(req, res) {
+    res.status(200).send({ data: orders });
+}
 
-function create(req, res){
+function create(req, res) {
     const { deliverTo, mobileNumber, dishes, status } = req.body.data;
     const newOrder = {
         id: nextId(),
         deliverTo,
         mobileNumber,
         status,
-        dishes
+        dishes,
     };
 
     orders.push(newOrder);
 
-    res.status(201).send({data: newOrder});
-};
+    res.status(201).send({ data: newOrder });
+}
 
-function read(req, res){
-    res.status(200).send({data: res.locals.order});
-};
+function read(req, res) {
+    res.status(200).send({ data: res.locals.order });
+}
+
+function update(req, res) {
+    const { deliverTo, mobileNumber, dishes, status } = req.body.data;
+    const order = res.locals.order;
+
+    order.deliverTo = deliverTo;
+    order.mobileNumber = mobileNumber;
+    order.dishes = dishes;
+    order.status = status;
+
+    res.status(200).send({ data: order });
+}
 
 module.exports = {
     list,
@@ -100,8 +140,15 @@ module.exports = {
         isQuantityValid,
         create,
     ],
-    read: [
+    read: [doesOrderIdExist, read],
+    update: [
         doesOrderIdExist,
-        read,
+        doesOrderIdMatch,
+        isMethodTypeIncluded('deliverTo'),
+        isMethodTypeIncluded('mobileNumber'),
+        isDishesArray,
+        isQuantityValid,
+        isStatusValid,
+        update,
     ],
 };
