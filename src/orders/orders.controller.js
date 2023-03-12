@@ -94,6 +94,19 @@ function isStatusValid(req, res, next) {
     });
 }
 
+function isStatusPending(req, res, next) {
+    const foundOrder = res.locals.order;
+    if (foundOrder.status === 'pending') {
+        return next();
+    }
+
+    next({
+        status: 400,
+        message: `An order cannot be deleted unless it is pending`,
+    });
+}
+
+
 // route main functions
 
 function list(req, res) {
@@ -131,6 +144,16 @@ function update(req, res) {
     res.status(200).send({ data: order });
 }
 
+function destroy(req, res) {
+    const { orderId } = req.params;
+    const index = orders.findIndex((order) => order.id === orderId);
+
+    orders.splice(index, 1);
+
+    res.sendStatus(204);
+}
+
+
 module.exports = {
     list,
     create: [
@@ -151,4 +174,9 @@ module.exports = {
         isStatusValid,
         update,
     ],
+    destroy: [
+        doesOrderIdExist,
+        isStatusPending,
+        destroy,
+    ]
 };

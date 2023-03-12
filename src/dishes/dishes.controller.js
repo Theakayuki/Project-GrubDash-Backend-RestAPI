@@ -66,7 +66,6 @@ function doesIdMatch(req, res, next) {
             message: `Dish id does not match route id. Dish: ${id}, Route: ${dishId}`,
         });
     } else {
-        console.log('id matches');
         return next();
     }
 }
