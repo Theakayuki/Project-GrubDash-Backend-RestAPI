@@ -51,6 +51,21 @@ function isQuantityValid(req, res, next){
     next();
 };
 
+function doesOrderIdExist(req, res, next){
+    const {orderId} = req.params;
+    const foundOrder = orders.find(order => order.id === orderId);
+
+    if (foundOrder){
+        res.locals.order = foundOrder;
+        return next()
+    }
+
+    next({
+        status: 404,
+        message: `No matching order with id: ${orderId}`,
+    });
+};
+
 // route main functions
 
 function list(req, res){
@@ -72,7 +87,9 @@ function create(req, res){
     res.status(201).send({data: newOrder});
 };
 
-
+function read(req, res){
+    res.status(200).send({data: res.locals.order});
+};
 
 module.exports = {
     list,
@@ -83,5 +100,8 @@ module.exports = {
         isQuantityValid,
         create,
     ],
-
+    read: [
+        doesOrderIdExist,
+        read,
+    ],
 };
