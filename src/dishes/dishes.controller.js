@@ -26,9 +26,11 @@ function isPropertyIncluded(property) {
 }
 
 function isValidPrice(req, res, next) {
-    const { price } = req.body.data;
+    const { data = {} } = req.body;
+    const { price } = data;
 
     if (Number.isInteger(price) && +price > 0) {
+        res.locals.newDish = data;
         return next();
     } else {
         next({
@@ -66,6 +68,7 @@ function doesIdMatch(req, res, next) {
             message: `Dish id does not match route id. Dish: ${id}, Route: ${dishId}`,
         });
     } else {
+
         return next();
     }
 }
@@ -77,7 +80,7 @@ function list(req, res) {
 }
 
 function create(req, res) {
-    const { name, description, price, image_url } = req.body.data;
+    const { name, description, price, image_url } = res.locals.newDish;
 
     const newDish = {
         name,
@@ -97,8 +100,14 @@ function read(req, res) {
 }
 
 function update(req, res) {
-    const dish = { ...res.locals.dish, ...res.locals.newDish, id: res.locals.id };
-    dishes[res.locals.id] = dish;
+    const dish = res.locals.dish;
+    const { name, description, price, image_url } = res.locals.newDish;
+
+    dish.name = name;
+    dish.description = description;
+    dish.price = price;
+    dish.image_url = image_url;
+
     res.status(200).send({ data: dish });
 }
 

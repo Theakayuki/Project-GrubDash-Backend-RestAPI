@@ -53,10 +53,12 @@ function isQuantityValid(req, res, next) {
 
 function doesOrderIdExist(req, res, next) {
     const { orderId } = req.params;
+    const { data } = req.body;
     const foundOrder = orders.find((order) => order.id === orderId);
 
     if (foundOrder) {
         res.locals.order = foundOrder;
+        res.locals.data = data;
         return next();
     }
 
@@ -133,7 +135,7 @@ function read(req, res) {
 }
 
 function update(req, res) {
-    const { deliverTo, mobileNumber, dishes, status } = req.body.data;
+    const  { deliverTo, mobileNumber, dishes, status } = res.locals.data;
     const order = res.locals.order;
 
     order.deliverTo = deliverTo;
